@@ -6,7 +6,6 @@ while atom_type != "He" and atom_type != "Be":
     atom_type = input("Choose either the He or Be atom: ")
     if atom_type != "He" and atom_type != "Be":
         print("You must type He or Be")
-
 if atom_type == "He":
     #He
     NUCLEAR_CHARGE = 2
@@ -15,5 +14,4 @@ elif atom_type == "Be":
     #Be
     NUCLEAR_CHARGE = 4
     N_ELECTRONS = 4
-else :
-    print("Error")
+    
