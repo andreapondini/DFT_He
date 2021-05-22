@@ -8,6 +8,8 @@ import numpy as np
 SAMPLES, R_MAX, = 4049, 50
 NUCLEAR_CHARGE = N_ELECTRONS = 2 #for He
 #NUCLEAR_CHARGE = N_ELECTRONS = 4 #for Be
+PREC = 1e-2
+HSE_E_MIN = -20
 pi=np.pi
 
 
@@ -55,12 +57,29 @@ class atom:
         self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1),A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3, 0)
         self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1e10),GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs),0)
 
-    def __compute_density(self):
+    def __compute_density(self): 
         for N in range(0, int(N_ELECTRONS/2)):
             #every orbital is occipied with 2 electrons
             self.rho = self.rho + 2*self.u[:,N]**2
+
+    def __hse_normalize(self,N): #to normalize radial u wavefunction
+        step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
+        norm = (self.u[0,N]**2 + self.u[-1,N]**2) / 2
+        for U in self.u[1:-2,N]: norm+= U**2
+        self.u[:,N] = self.u[:,N] / (norm * step)**0.5
+
+    def __hse_integrate(self, L, E_N):
+          step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
+          #inward integration
+          self.u[-1] = self.r[-1]*np.exp(-self.r[-1])
+          self.u[-2]= self.r[-2]*np.exp(-self.r[-2])
+          #integrate inward using Verlet algorithm
+          for i in range(SAMPLES-2,0,-1):
+              self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
+    
         
-    def potential_energy(self, V):
+    def potential_energy(self, V): #computes the energy of given potential
         step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
         E = np.sum(V*self.rho/2)
         return E * step    
+
