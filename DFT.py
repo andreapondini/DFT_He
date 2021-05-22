@@ -62,6 +62,16 @@ class atom:
             #every orbital is occipied with 2 electrons
             self.rho = self.rho + 2*self.u[:,N]**2
 
+    def __compute_orbitals(self):
+        E=0
+        E_max =  0
+        E_min = HSE_E_MIN
+        #Go through all occupied states N, note that only s states are supported.
+        for N in range(0, int(N_ELECTRONS/2)):
+            E_max, E_min, E_N =self.__hse_solve(N, 0, E_max,E_min) #L is always 0 because 2s orbital
+            E +=E_N
+        return E
+
     def __hse_normalize(self,N): #to normalize radial u wavefunction
         step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
         norm = (self.u[0,N]**2 + self.u[-1,N]**2) / 2
@@ -77,7 +87,19 @@ class atom:
           for i in range(SAMPLES-2,0,-1):
               self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
     
-        
+    def __hse_solve(self,N,L,E_max,E_min): #solve SE
+        while np.abs(E_max-E_min) > PREC:
+            E_N = (E_min+E_max)/2
+            self.__hse_integrate(L,E_N)
+            nodes = 0 #look for nodes
+            for i in range(0,SAMPLES-1):
+                if self.u[i,N]*self.u[i+1,N] < 0: nodes+=1
+      #continue search in the above or below half ?????
+            if (nodes > N-L-1): E_max = E_N
+            else: E_min = E_N 
+        self.__hse_normalize(N)
+        return E_max, E_min, E_N
+
     def potential_energy(self, V): #computes the energy of given potential
         step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
         E = np.sum(V*self.rho/2)
