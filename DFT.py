@@ -105,3 +105,15 @@ class atom:
         E = np.sum(V*self.rho/2)
         return E * step    
 
+    def __hdft(self):
+        last_total_energy = 1
+        total_energy = 0
+        while(np.abs(last_total_energy-total_energy)>PREC):
+            self.__compute_hartree_potential()
+            self.__compute_exchange_potential()
+            self.__compute_correlation_potential()
+            self.V = self.V_N + self.V_H + self.V_X + self.V_C  
+            E = self.__compute_orbitals()
+            self.__compute_density()
+            total_energy = 2*E - self.potential_energy(self.V_H) - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2
+        return total_energy
