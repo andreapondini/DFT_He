@@ -5,11 +5,11 @@ Created on Fri May 21 23:05:23 2021
 @author: Andrea
 """
 import numpy as np
+import matplotlib.pyplot as plt
 SAMPLES, R_MAX, = 4049, 50
-NUCLEAR_CHARGE = N_ELECTRONS = 2 #for He
-#NUCLEAR_CHARGE = N_ELECTRONS = 4 #for Be
-PREC = 1e-5
-HSE_E_MIN = -50
+NUCLEAR_CHARGE = N_ELECTRONS = 2
+PREC = 1e-2
+HSE_E_MIN = -20
 pi=np.pi
 
 
@@ -18,7 +18,7 @@ class atom:
         self.r = np.linspace(0,R_MAX,SAMPLES) #radius vector
         self.E = 0  #system energy
         self.rho = self.V_H = self.V_X = self.V_C = self.V_N = np.zeros(SAMPLES)
-        self.u = np.zeros((SAMPLES,int(N_ELECTRONS/2))) #radial function for each point and each orbital
+        self.u = np.zeros(SAMPLES) #radial function for each point and each orbital
         self.V_N[1:] = NUCLEAR_CHARGE / self.r[1:]
         self.V_N[0]=0 #otherwise it diverges at 0
 
@@ -57,20 +57,16 @@ class atom:
         self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1e10),GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs),0)
 
     def __compute_density(self): 
-        for N in range(0, int(N_ELECTRONS/2)):
-            #every orbital is occipied with 2 electrons
-            self.rho = self.rho + 2*self.u[:,N]**2
+        #every orbital is occipied with 2 electrons
+        self.rho = self.rho + 2*self.u**2
 
     def __compute_orbitals(self):
-        E=0
-        #Go through all occupied states N, note that only s states are supported.
-        for N in range(0, int(N_ELECTRONS/2)):
-            E_N =self.__hse_solve(N, 0) #L is always 0 because 2s orbital
-            E +=E_N
+        #L is always 0 because s orbital, N = 1
+        E = self.__hse_solve(1, 0) #N,L
         return E
 
-    def __hse_normalize(self,N): #to normalize radial u wavefunction
-        R=self.r*self.u[0]
+    def __hse_normalize(self): #to normalize radial u wavefunction
+        R=self.r*self.u
         area = np.trapz(R,self.r)
         self.u = self.u / area
 
@@ -82,7 +78,6 @@ class atom:
           #integrate inward using Verlet algorithm
           for i in range(SAMPLES-2,0,-1):
               self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
- #              U(I-1) = 2*U(I) - U(I+1) + STEP**2*(-2*E + 2*V(I) + L*(L+1)/R(I)**2)*U(I)
     
     def __hse_solve(self,N,L): #solve SE
         E_N=0
@@ -92,16 +87,14 @@ class atom:
             E_N = (E_min+E_max)/2
             print("E_N " , E_N)
             self.__hse_integrate(L,E_N)
-            self.__hse_normalize(N)
             nodes = 0 #look for nodes
             for i in range(0,SAMPLES-1):
-                if self.u[i,N]*self.u[i+1,N] < 0: nodes+=1
-            breakpoint()
-      #continue search in the above or below half
+                if self.u[i]*self.u[i+1] < 0: nodes+=1
+           # breakpoint()
+            #continue search in the above or below half of energy range
             if (nodes > N-L-1): E_max = E_N
             else: E_min = E_N 
-        
-        #print("E_N " , E_N)
+        self.__hse_normalize()
         return E_N
         
 
@@ -114,6 +107,7 @@ class atom:
         last_total_energy = 1
         total_energy = 0
         while(np.abs(last_total_energy-total_energy)>PREC):
+            last_total_energy = total_energy
             self.__compute_hartree_potential()
             print("V_H = ", self.V_H)
             self.__compute_exchange_potential()
@@ -121,10 +115,12 @@ class atom:
             self.V = self.V_N + self.V_H + self.V_X + self.V_C  
             E = self.__compute_orbitals()
             self.__compute_density()
-            
+            #total energy of the 2 electrons + potential energy
             total_energy = 2*E - self.potential_energy(self.V_H) - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2
             print("total energy ",round(total_energy,2),"E ",round(E,2), "VH ",round(self.potential_energy(self.V_H),2),"VX ",round(self.potential_energy(self.V_X),2),"V_C ",round(self.potential_energy(self.V_C),2))
+            plt.plot(self.r[0:100],self.u[0:100])
         return total_energy
 
 prova = atom()
 prova._atom__hdft()
+plt.plot(prova.r[0:100],prova.u[0,100])
