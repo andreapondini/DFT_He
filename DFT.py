@@ -8,8 +8,8 @@ import numpy as np
 SAMPLES, R_MAX, = 4049, 50
 NUCLEAR_CHARGE = N_ELECTRONS = 2 #for He
 #NUCLEAR_CHARGE = N_ELECTRONS = 4 #for Be
-PREC = 1e-2
-HSE_E_MIN = -20
+PREC = 1e-5
+HSE_E_MIN = -50
 pi=np.pi
 
 
@@ -22,12 +22,12 @@ class atom:
         self.V_N[1:] = NUCLEAR_CHARGE / self.r[1:]
         self.V_N[0]=0 #otherwise it diverges at 0
 
+
     def __compute_hartree_potential(self):
         #   Compute Hartree potential from solving the Poisson equation
         #   U_H''(r) = -rho(r) / r
         #   with the boundary conditions U_H(0) = 0, U_H(r_max) = n_electrons.
         U_H = np.zeros(SAMPLES)
-        # First boundary condition: no charge within radius 0
         U_H[0] = 0
         # alpha 0 assumed. r_max boundary condition matching done after integration
         U_H[1] = 0
@@ -46,7 +46,6 @@ class atom:
         self.V_H[1:] = U_H[1:] / self.r[1:]
         self.V_H[0] = 0
     def __compute_exchange_potential(self):
-        #numpy does
         self.V_X[1:] = -np.cbrt((3*self.rho[1:]/(4*pi**2*self.r[1:]**2))) #cube root
         self.V_X[0] = 0
     def __compute_correlation_potential(self):
@@ -64,19 +63,16 @@ class atom:
 
     def __compute_orbitals(self):
         E=0
-        E_max =  0
-        E_min = HSE_E_MIN
         #Go through all occupied states N, note that only s states are supported.
         for N in range(0, int(N_ELECTRONS/2)):
-            E_max, E_min, E_N =self.__hse_solve(N, 0, E_max,E_min) #L is always 0 because 2s orbital
+            E_N =self.__hse_solve(N, 0) #L is always 0 because 2s orbital
             E +=E_N
         return E
 
     def __hse_normalize(self,N): #to normalize radial u wavefunction
-        step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
-        norm = (self.u[0,N]**2 + self.u[-1,N]**2) / 2
-        for U in self.u[1:-2,N]: norm+= U**2
-        self.u[:,N] = self.u[:,N] / (norm * step)**0.5
+        R=self.r*self.u[0]
+        area = np.trapz(R,self.r)
+        self.u = self.u / area
 
     def __hse_integrate(self, L, E_N):
           step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
@@ -86,19 +82,28 @@ class atom:
           #integrate inward using Verlet algorithm
           for i in range(SAMPLES-2,0,-1):
               self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
+ #              U(I-1) = 2*U(I) - U(I+1) + STEP**2*(-2*E + 2*V(I) + L*(L+1)/R(I)**2)*U(I)
     
-    def __hse_solve(self,N,L,E_max,E_min): #solve SE
+    def __hse_solve(self,N,L): #solve SE
+        E_N=0
+        E_max =  0
+        E_min = HSE_E_MIN
         while np.abs(E_max-E_min) > PREC:
             E_N = (E_min+E_max)/2
+            print("E_N " , E_N)
             self.__hse_integrate(L,E_N)
+            self.__hse_normalize(N)
             nodes = 0 #look for nodes
             for i in range(0,SAMPLES-1):
                 if self.u[i,N]*self.u[i+1,N] < 0: nodes+=1
-      #continue search in the above or below half ?????
+            breakpoint()
+      #continue search in the above or below half
             if (nodes > N-L-1): E_max = E_N
             else: E_min = E_N 
-        self.__hse_normalize(N)
-        return E_max, E_min, E_N
+        
+        #print("E_N " , E_N)
+        return E_N
+        
 
     def potential_energy(self, V): #computes the energy of given potential
         step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
@@ -110,10 +115,16 @@ class atom:
         total_energy = 0
         while(np.abs(last_total_energy-total_energy)>PREC):
             self.__compute_hartree_potential()
+            print("V_H = ", self.V_H)
             self.__compute_exchange_potential()
             self.__compute_correlation_potential()
             self.V = self.V_N + self.V_H + self.V_X + self.V_C  
             E = self.__compute_orbitals()
             self.__compute_density()
+            
             total_energy = 2*E - self.potential_energy(self.V_H) - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2
+            print("total energy ",round(total_energy,2),"E ",round(E,2), "VH ",round(self.potential_energy(self.V_H),2),"VX ",round(self.potential_energy(self.V_X),2),"V_C ",round(self.potential_energy(self.V_C),2))
         return total_energy
+
+prova = atom()
+prova._atom__hdft()
