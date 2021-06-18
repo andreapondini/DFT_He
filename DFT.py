@@ -13,7 +13,7 @@ HSE_E_MIN = -20
 pi = np.pi
 
 def func(x):
-    return 4*x*np.exp(-2*x)
+    return x*np.exp(-2*x)/np.trapz((x*np.exp(-2*x))**2,x)**0.5
     
 class atom:
     def __init__(self):
@@ -55,15 +55,16 @@ class atom:
         #Compute the correlation potential according to Ceperly-Alder
         #parameterization for the spin unpolarized system.
         A , B, C, D, GAM, BETA1, BETA2 = 0.0311, -0.048, 0.002, -0.0116, -0.1423, 1.0529, 0.3334
-        rs = np.where(self.rho>1e-10,np.cbrt(3 * self.r**2 / self.rho),0)
-        self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1),A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3, 0)
-        self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1e10),GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs),0)
-
-
-    def __compute_orbitals(self):
-        #L is always 0 because s orbital, N = 1
-        E = self.__hse_solve(1, 0) #N,L
-        return E
+        for i in range(1,SAMPLES):
+            if self.rho[i] < 1e-10: self.V_C[i] = 0
+            else:
+                rs = np.cbrt(3 * self.r[i]**2 / self.rho[i])
+                if rs <1 : self.V_C[i] = A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3
+                elif rs < 1e10 : self.V_C[i] = GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs)
+                else: self.V_C[i]=0
+        #rs = np.where(self.rho>1e-10,np.cbrt(3 * self.r**2 / self.rho),0)
+        #self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1),A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3, 0)
+        #self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1e10),GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs),0)
 
     def __hse_normalize(self): #to normalize radial u wavefunction
         prob=self.u**2
@@ -110,11 +111,12 @@ class atom:
             self.__compute_hartree_potential()
             self.__compute_exchange_potential()
             self.__compute_correlation_potential()
-            self.V = self.V_N + self.V_H + self.V_X + self.V_C  
-            E = self.__compute_orbitals()
+            self.V = self.V_N + self.V_H + self.V_C + self.V_X 
+            #L is always 0 because s orbital, N = 1
+            E = self.__hse_solve(1, 0) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
-            total_energy = 2*E - self.potential_energy(self.V_H) - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2
+            total_energy = 2*E - self.potential_energy(self.V_H) - self.potential_energy(self.V_C)/2  - self.potential_energy(self.V_X)/2
         print("E ",round(E,3))
         print("V_H ",round(self.potential_energy(self.V_H),3))
         print("V_X ",round(self.potential_energy(self.V_X),3))
@@ -126,17 +128,18 @@ prova = atom()
 prova.hdft()
 print("total energy ",round(prova.E,3))
 fig, (ax1,ax2) = plt.subplots(2)
-ax1.plot(prova.r[0:300],prova.u[0:300],label='u')
-ax1.plot(prova.r[0:300],func(prova.r[0:300]),label="hydrogen like WF")
+ax1.plot(prova.r[0:400],prova.u[0:400],label='u')
+ax1.plot(prova.r[0:400],func(prova.r[0:400]),label="hydrogen like WF")
 ax1.set(title='Wavefunction', xlabel='r')
 ax1.legend(loc = 'upper right')
 ax1.grid()
 #ax2.plot(prova.r[0:],prova.V_N[0:],label="V_N")
 ax2.plot(prova.r[0:1000],prova.V_H[0:1000],label="V_H")
 ax2.plot(prova.r[0:1000],prova.V_X[0:1000],label="V_X")
-#ax2.plot(prova.r[0:1000],prova.V_C[0:1000],label="V_C")
+ax2.plot(prova.r[0:1000],prova.V_C[0:1000],label="V_C")
 #ax2.plot(prova.r[0:1000],prova.V[0:1000]-prova.V_N[0:1000],label="effective potential")
 ax2.set(title='Potentials', xlabel='r')
 ax2.legend(loc = 'upper right')
 ax2.grid()
 fig.tight_layout()
+fig.savefig("HE_DFT.pdf")
