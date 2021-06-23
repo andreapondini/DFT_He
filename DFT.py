@@ -8,7 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 SAMPLES, R_MAX, = 4049, 50
 NUCLEAR_CHARGE = N_ELECTRONS = 2
-PREC = 1e-4
+PREC_DFT = 1e-4
+PREC_HSE =PREC_DFT*1e-4
 HSE_E_MIN = -20
 pi = np.pi
 
@@ -40,7 +41,7 @@ class atom:
         # outwards integration using Verlet algorithm
         step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
         for i in range(1,SAMPLES-1):
-            U_H[i+1] = 2*U_H[i] - U_H[i-1] - step**2 * self.u[i]**2/self.r[i]
+            U_H[i+1] = 2*U_H[i] - U_H[i-1] - step**2 * self.rho[i]/self.r[i]
         # match boundary condition at r_max:
         # full charge of all electron within r_max
         alpha = (N_ELECTRONS - U_H[-1]) / self.r[-1]
@@ -85,7 +86,7 @@ class atom:
         E_N=0
         E_max =  0
         E_min = HSE_E_MIN
-        while np.abs(E_max-E_min) > PREC:
+        while np.abs(E_max-E_min) > PREC_HSE:
             E_N = (E_min+E_max)/2
             self.__hse_integrate(L,E_N)
             nodes = 0 #look for nodes
@@ -105,7 +106,7 @@ class atom:
     def hdft(self):
         last_total_energy = 1
         total_energy = 0
-        while(np.abs(last_total_energy-total_energy)>PREC):
+        while(np.abs(last_total_energy-total_energy)>PREC_DFT):
             last_total_energy = total_energy
             #breakpoint()
             self.__compute_hartree_potential()
