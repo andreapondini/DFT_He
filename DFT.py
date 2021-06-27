@@ -16,17 +16,17 @@ pi = np.pi
 def func(x):
     return x*np.exp(-2*x)/np.trapz((x*np.exp(-2*x))**2,x)**0.5
     
-class atom:
+class He:
     def __init__(self):
-        self.r = np.linspace(0,R_MAX,SAMPLES) #radius vector
+        self.r = np.linspace(0,R_MAX,SAMPLES) #radial vector space
         self.E = 0  #system energy
         self.rho = np.zeros(SAMPLES)
         self.V_H = np.zeros(SAMPLES)
         self.V_X = np.zeros(SAMPLES)
         self.V_C = np.zeros(SAMPLES)
         self.V_N = np.zeros(SAMPLES)
-        self.u = np.zeros(SAMPLES) #radial function for each point and each orbital
-        self.V_N[1:] = - NUCLEAR_CHARGE / self.r[1:]
+        self.u = np.zeros(SAMPLES) #radial function
+        self.V_N[1:] = - NUCLEAR_CHARGE / self.r[1:] #initializing nuclear potential
         self.V_N[0]=0 #otherwise it diverges at 0
 
 
@@ -36,7 +36,6 @@ class atom:
         #   with the boundary conditions U_H(0) = 0, U_H(r_max) = n_electrons.
         U_H = np.zeros(SAMPLES)
         U_H[0] = 0
-        # alpha 0 assumed. r_max boundary condition matching done after integration
         U_H[1] = 0
         # outwards integration using Verlet algorithm
         step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
@@ -46,7 +45,7 @@ class atom:
         # full charge of all electron within r_max
         alpha = (N_ELECTRONS - U_H[-1]) / self.r[-1]
         U_H = U_H + alpha * self.r
-        #finally, get the Hartree potential from U_H
+        #get the Hartree potential from U_H
         self.V_H[1:] = U_H[1:] / self.r[1:]
         self.V_H[0] = 0
     def __compute_exchange_potential(self):
@@ -63,9 +62,6 @@ class atom:
                 if rs <1 : self.V_C[i] = A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3
                 elif rs < 1e10 : self.V_C[i] = GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs)
                 else: self.V_C[i]=0
-        #rs = np.where(self.rho>1e-10,np.cbrt(3 * self.r**2 / self.rho),0)
-        #self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1),A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3, 0)
-        #self.V_C = np.where(np.logical_and(self.rho>1e-10,rs<1e10),GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs),0)
 
     def __hse_normalize(self): #to normalize radial u wavefunction
         prob=self.u**2
@@ -75,7 +71,7 @@ class atom:
 
     def __hse_integrate(self, L, E_N):
           step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
-          #inward integration
+          #setting boundary codition
           self.u[-1] = self.r[-1]*np.exp(-self.r[-1])
           self.u[-2]= self.r[-2]*np.exp(-self.r[-2])
           #integrate inward using Verlet algorithm
@@ -125,21 +121,21 @@ class atom:
         self.E = total_energy
         return self.E
 
-prova = atom()
-prova.hdft()
-print("total energy ",round(prova.E,3))
+atom = He()
+atom.hdft()
+print("total energy ",round(atom.E,3))
 fig, (ax1,ax2) = plt.subplots(2)
-ax1.plot(prova.r[0:400],prova.u[0:400],label='u')
-ax1.plot(prova.r[0:400],func(prova.r[0:400]),label="hydrogen like WF")
-ax1.set(title='Wavefunction', xlabel='r')
+ax1.plot(atom.r[0:400],atom.u[0:400],label='u')
+ax1.plot(atom.r[0:400],func(atom.r[0:400]),label="hydrogen like WF")
+ax1.set(title='Wavefunction', xlabel='r [Å]',ylabel= 'Energy [a.u]')
 ax1.legend(loc = 'upper right')
 ax1.grid()
-#ax2.plot(prova.r[0:],prova.V_N[0:],label="V_N")
-ax2.plot(prova.r[0:1000],prova.V_H[0:1000],label="V_H")
-ax2.plot(prova.r[0:1000],prova.V_X[0:1000],label="V_X")
-ax2.plot(prova.r[0:1000],prova.V_C[0:1000],label="V_C")
-#ax2.plot(prova.r[0:1000],prova.V[0:1000]-prova.V_N[0:1000],label="effective potential")
-ax2.set(title='Potentials', xlabel='r')
+#ax2.plot(atom.r[0:],atom.V_N[0:],label="V_N")
+ax2.plot(atom.r[0:1000],atom.V_H[0:1000],label="V_H")
+ax2.plot(atom.r[0:1000],atom.V_X[0:1000],label="V_X")
+ax2.plot(atom.r[0:1000],atom.V_C[0:1000],label="V_C")
+#ax2.plot(atom.r[0:1000],atom.V[0:1000]-atom.V_N[0:1000],label="effective potential")
+ax2.set(title='Potentials', xlabel='r [Å]',ylabel= 'Energy [a.u]')
 ax2.legend(loc = 'upper right')
 ax2.grid()
 fig.tight_layout()
