@@ -1,0 +1,11 @@
+[settings]
+samples = 4049
+r_max = 50
+prec_dft = 1e-4
+prec_hse = 1e-8
+hse_e_min = -20
+
+[paths]
+density_plot : ./Plots/density_plot.pdf
+potentials_plot : ./Plots/potentials_plot.pdf
+
