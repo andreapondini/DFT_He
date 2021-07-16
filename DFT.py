@@ -9,17 +9,22 @@ import matplotlib.pyplot as plt
 SAMPLES, R_MAX, = 4049, 50
 NUCLEAR_CHARGE = N_ELECTRONS = 2
 PREC_DFT = 1e-4
-PREC_HSE =PREC_DFT*1e-4
+PREC_HSE = PREC_DFT*1e-4
 HSE_E_MIN = -20
 pi = np.pi
 
-def func(x):
+def hydrogen_like_wavefunc(x):
+    """
+    returns the wavefunction of He in the case
+    where there's no interaction between the electrons
+    """
     return x*np.exp(-2*x)/np.trapz((x*np.exp(-2*x))**2,x)**0.5
     
 class He:
     def __init__(self):
         self.r = np.linspace(0,R_MAX,SAMPLES) #radial vector space
-        self.E = 0  #system energy
+        self.E_k = 0  #kinetic energy
+        self.total_energy = 0
         self.rho = np.zeros(SAMPLES)
         self.V_H = np.zeros(SAMPLES)
         self.V_X = np.zeros(SAMPLES)
@@ -49,8 +54,8 @@ class He:
         self.V_H[1:] = U_H[1:] / self.r[1:]
         self.V_H[0] = 0
     def __compute_exchange_potential(self):
-        self.V_X[1:] = -np.cbrt(3*self.rho[1:]/(4*pi**2*self.r[1:]**2)) #cube root
-        self.V_X[0] = 0
+        self.V_X[1:] = -np.cbrt(3*self.rho[1:]/(4*pi**2*self.r[1:]**2)) #Slater Potential
+        self.V_X[0] = 0 #otherwise it diverges at 0
     def __compute_correlation_potential(self):
         #Compute the correlation potential according to Ceperly-Alder
         #parameterization for the spin unpolarized system.
@@ -64,10 +69,11 @@ class He:
                 else: self.V_C[i]=0
 
     def __hse_normalize(self): #to normalize radial u wavefunction
-        prob=self.u**2
-        area = np.trapz(prob,self.r)
-        prob=prob/area
-        self.u = prob**0.5
+        probability_density=self.u**2
+        probability = np.trapz(probability_density,self.r) 
+        #the probability of finding an electron has to be = 1
+        probability_density = probability_density/probability 
+        self.u = probability_density**0.5
 
     def __hse_integrate(self, L, E_N):
           step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
@@ -88,7 +94,6 @@ class He:
             nodes = 0 #look for nodes
             for i in range(0,SAMPLES-1):
                 if self.u[i]*self.u[i+1] < 0: nodes+=1
-           # breakpoint()
             #continue search in the above or below half of energy range
             if (nodes > N-L-1): E_max = E_N
             else: E_min = E_N 
@@ -101,42 +106,47 @@ class He:
 
     def hdft(self):
         last_total_energy = 1
-        total_energy = 0
-        while(np.abs(last_total_energy-total_energy)>PREC_DFT):
-            last_total_energy = total_energy
+        self.total_energy = 0
+        while(np.abs(last_total_energy-self.total_energy)>PREC_DFT):
+            last_total_energy = self.total_energy
             #breakpoint()
             self.__compute_hartree_potential()
             self.__compute_exchange_potential()
             self.__compute_correlation_potential()
-            self.V = self.V_N + self.V_H + self.V_C + self.V_X 
+            self.V = self.V_N + self.V_H  + self.V_X + self.V_C 
             #L is always 0 because s orbital, N = 1
-            E = self.__hse_solve(1, 0) #N,L
+            self.E_k = self.__hse_solve(1, 0) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
-            total_energy = 2*E - self.potential_energy(self.V_H) - self.potential_energy(self.V_C)/2  - self.potential_energy(self.V_X)/2
-        print("E ",round(E,3))
-        print("V_H ",round(self.potential_energy(self.V_H),3))
-        print("V_X ",round(self.potential_energy(self.V_X),3))
-        print("V_C ",round(self.potential_energy(self.V_C),3))
-        self.E = total_energy
-        return self.E
-
+            self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2 
+        return self.total_energy
+    
+    def print_energy(self):
+        print("Each electron kinetic energy ",round(self.E_k,3)," a.u")
+        print("Total energy ",round(atom.total_energy,3)," a.u")
+        
+    def plot_results(self):
+        fig, (ax1,ax2,ax3) = plt.subplots(3,1,figsize=(8,7))
+        ax1.plot(atom.r[self.r<4],atom.rho[self.r<4],label='density')
+        ax1.plot(atom.r[self.r<4],2*hydrogen_like_wavefunc(atom.r[self.r<4])**2,label="hydrogen like density")
+        ax1.set(title='Wavefunction')
+        ax1.legend(loc = 'upper right')
+        ax1.grid()
+        ax2.plot(atom.r[self.r<12],atom.V_H[self.r<12],label="V_H")
+        ax2.plot(atom.r[self.r<12],atom.V_X[self.r<12],label="V_X")
+        ax2.plot(atom.r[self.r<12],atom.V_C[self.r<12],label="V_C")
+        ax2.set(title='Potentials',ylabel= 'Energy [a.u]')
+        ax2.legend(loc = 'upper right')
+        ax2.grid()
+        ax3.set(xlabel='r [Å]',ylabel= 'Energy [a.u]')
+        ax3.plot(atom.r[self.r<12],atom.V_C[self.r<12],label="V_C")
+        ax3.legend(loc = 'lower right')
+        ax3.grid()
+        fig.tight_layout()
+        fig.savefig("Plots/HE_DFT.pdf",dpi=100)
+        
 atom = He()
 atom.hdft()
-print("total energy ",round(atom.E,3))
-fig, (ax1,ax2) = plt.subplots(2)
-ax1.plot(atom.r[0:400],atom.u[0:400],label='u')
-ax1.plot(atom.r[0:400],func(atom.r[0:400]),label="hydrogen like WF")
-ax1.set(title='Wavefunction', xlabel='r [Å]',ylabel= 'Energy [a.u]')
-ax1.legend(loc = 'upper right')
-ax1.grid()
-#ax2.plot(atom.r[0:],atom.V_N[0:],label="V_N")
-ax2.plot(atom.r[0:1000],atom.V_H[0:1000],label="V_H")
-ax2.plot(atom.r[0:1000],atom.V_X[0:1000],label="V_X")
-ax2.plot(atom.r[0:1000],atom.V_C[0:1000],label="V_C")
-#ax2.plot(atom.r[0:1000],atom.V[0:1000]-atom.V_N[0:1000],label="effective potential")
-ax2.set(title='Potentials', xlabel='r [Å]',ylabel= 'Energy [a.u]')
-ax2.legend(loc = 'upper right')
-ax2.grid()
-fig.tight_layout()
-fig.savefig("HE_DFT.pdf")
+atom.print_energy()
+atom.plot_results()
+
