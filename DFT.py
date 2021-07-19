@@ -19,6 +19,7 @@ PREC_HSE = config.get('settings', 'prec_hse')
 HSE_E_MIN = config.get('settings', 'hse_e_min')
 plot1_path = config.get('paths', 'density_plot')
 plot2_path = config.get('paths', 'potentials_plot')
+data_path = config.get('paths','data')
 pi = np.pi
 
 SAMPLES = int(SAMPLES)
@@ -39,11 +40,11 @@ class He:
         self.r = np.linspace(0,R_MAX,SAMPLES) #radial vector space
         self.E_k = 0  #kinetic energy
         self.total_energy = 0
-        self.rho = np.zeros(SAMPLES)
-        self.V_H = np.zeros(SAMPLES)
-        self.V_X = np.zeros(SAMPLES)
-        self.V_C = np.zeros(SAMPLES)
-        self.V_N = np.zeros(SAMPLES)
+        self.rho = np.zeros(SAMPLES) #density
+        self.V_H = np.zeros(SAMPLES) #hartree potential
+        self.V_X = np.zeros(SAMPLES) #exchange potential
+        self.V_C = np.zeros(SAMPLES) #correlation potential
+        self.V_N = np.zeros(SAMPLES) #nuclear potential
         self.u = np.zeros(SAMPLES) #radial function
         self.V_N[1:] = - NUCLEAR_CHARGE / self.r[1:] #initializing nuclear potential
         self.V_N[0]=0 #otherwise it diverges at 0
@@ -103,15 +104,15 @@ class He:
         E_max =  0
         E_min = HSE_E_MIN
         while np.abs(E_max-E_min) > PREC_HSE:
-            E_N = (E_min+E_max)/2
-            self.__hse_integrate(L,E_N)
+            E_N = (E_min+E_max)/2  #bisection method
+            self.__hse_integrate(L,E_N) #solve SE
             nodes = 0 #look for nodes
             for i in range(0,SAMPLES-1):
                 if self.u[i]*self.u[i+1] < 0: nodes+=1
             #continue search in the above or below half of energy range
             if (nodes > N-L-1): E_max = E_N
             else: E_min = E_N 
-        self.__hse_normalize()
+        self.__hse_normalize() #normalize WF
         return E_N
         
 
@@ -137,7 +138,7 @@ class He:
     
     def print_energy(self):
         print("Each electron kinetic energy ",round(self.E_k,3)," a.u")
-        print("Total energy ",round(atom.total_energy,3)," a.u")
+        
         
     def plot_density(self):
         """
@@ -154,7 +155,7 @@ class He:
         fig.savefig(plot1_path,dpi=100)
         
     def plot_potentials(self):
-        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(7,5))
+        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(7,4))
         ax1.plot(atom.r[self.r<12],atom.V_H[self.r<12],label="V_H")
         ax1.plot(atom.r[self.r<12],atom.V_X[self.r<12],label="V_X")
         ax1.plot(atom.r[self.r<12],atom.V_C[self.r<12],label="V_C")
@@ -168,9 +169,14 @@ class He:
         fig.tight_layout()
         fig.savefig(plot2_path,dpi=100)
         
+    def save_data(self):
+        zipped = zip(self.r,self.u,self.rho,self.V)
+        np.savetxt(data_path,list(zipped),fmt='%.5e',delimiter='\t',header="R [Å] \t single electron WF \t density \t V [a.u.]")
+        
 atom = He()
 atom.hdft()
-atom.print_energy()
+print("Total energy ",round(atom.total_energy,3)," a.u")
+atom.save_data()
 atom.plot_density()
 atom.plot_potentials()
 
