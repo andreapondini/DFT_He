@@ -12,15 +12,15 @@ config = configparser.ConfigParser()
 config.read("configuration.txt")
 
 NUCLEAR_CHARGE = 2
-SAMPLES = config.get('settings', 'samples')
-R_MAX = config.get('settings', 'r_max')
-PREC_DFT = config.get('settings', 'prec_dft')
-PREC_HSE = config.get('settings', 'prec_hse')
-HSE_E_MIN = config.get('settings', 'hse_e_min')
+pi = np.pi
+SAMPLES = config.get('settings', 'SAMPLES')
+R_MAX = config.get('settings', 'R_MAX')
+PREC_DFT = config.get('settings', 'PREC_DFT')
+PREC_HSE = config.get('settings', 'PREC_HSE')
+HSE_E_MIN = config.get('settings', 'HSE_E_MIN')
 plot1_path = config.get('paths', 'density_plot')
 plot2_path = config.get('paths', 'potentials_plot')
 data_path = config.get('paths','data')
-pi = np.pi
 
 SAMPLES = int(SAMPLES)
 R_MAX = int(R_MAX)
@@ -134,11 +134,7 @@ class He:
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
             self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2 
-        return self.total_energy
-    
-    def print_energy(self):
-        print("Each electron kinetic energy ",round(self.E_k,3)," a.u")
-        
+        return self.total_energy      
         
     def plot_density(self):
         """
