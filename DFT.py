@@ -23,7 +23,7 @@ plot2_path = config.get('paths', 'potentials_plot')
 data_path = config.get('paths','data')
 
 SAMPLES = int(SAMPLES)
-R_MAX = int(R_MAX)
+R_MAX = float(R_MAX)
 PREC_DFT = float(PREC_DFT)
 PREC_HSE = float(PREC_HSE)
 HSE_E_MIN = int(HSE_E_MIN)
@@ -36,7 +36,7 @@ def hydrogen_like_wavefunc(x):
     return x*np.exp(-NUCLEAR_CHARGE*x)/np.trapz((x*np.exp(-NUCLEAR_CHARGE*x))**2,x)**0.5
     
 class He:
-    def __init__(self):
+    def __init__(self,R_MAX,SAMPLES):
         self.r = np.linspace(0,R_MAX,SAMPLES) #radial vector space
         self.E_k = 0  #kinetic energy
         self.total_energy = 0
@@ -169,7 +169,7 @@ class He:
         zipped = zip(self.r,self.u,self.rho,self.V)
         np.savetxt(data_path,list(zipped),fmt='%.5e',delimiter='\t',header="R [Å] \t single electron WF \t density \t V [a.u.]")
         
-atom = He()
+atom = He(R_MAX,SAMPLES)
 atom.hdft()
 print("Total energy ",round(atom.total_energy,3)," a.u")
 atom.save_data()
