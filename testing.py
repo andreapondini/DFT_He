@@ -10,7 +10,7 @@ NUCLEAR_CHARGE = 2
 config = configparser.ConfigParser()
 config.read("configuration.txt")
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))), R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
-def test_initialization(R_MAX,SAMPLES):
+def test_He_init(R_MAX,SAMPLES):
     test_atom = He(R_MAX,SAMPLES)
     #tests edge values for r
     assert(test_atom.r[-1]==R_MAX)
@@ -28,8 +28,9 @@ def test_initialization(R_MAX,SAMPLES):
     
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
-def test_compute_hartee(R_MAX,SAMPLES):
+def test_compute_hartee_potential(R_MAX,SAMPLES):
     test_atom = He(R_MAX,SAMPLES)
+    #using a random WF
     u=np.random.rand(SAMPLES)
     probability_density=u**2
     probability = np.trapz(probability_density,test_atom.r) 
@@ -37,25 +38,47 @@ def test_compute_hartee(R_MAX,SAMPLES):
     probability_density = probability_density/probability 
     test_atom.u = probability_density**0.5
     test_atom.rho=2*probability_density
-    U_H = np.zeros(SAMPLES)
-    U_H[0] = 0
-    U_H[1] = 0
-    # outwards integration using Verlet algorithm
-    step = (test_atom.r[-1] - test_atom.r[0]) / (SAMPLES-1)
-    for i in range(1,SAMPLES-1):
-        U_H[i+1] = 2*U_H[i] - U_H[i-1] - step**2 * test_atom.rho[i]/test_atom.r[i]
-    # match boundary condition at r_max:
-    # full charge of all electron within r_max
-    alpha = (NUCLEAR_CHARGE - U_H[-1]) / test_atom.r[-1]
-    U_H = U_H + alpha * test_atom.r
-    #tests that the potential is positive
-    assert(np.all(U_H >= 0))
+    test_atom.compute_hartree_potential(SAMPLES)
+    assert(np.all(test_atom.V_H >= 0))
     #tests that the boundary condition is matched
-    np.testing.assert_almost_equal(U_H[-1],NUCLEAR_CHARGE,decimal=7)
+    np.testing.assert_almost_equal(test_atom.V_H[-1]*test_atom.r[-1],NUCLEAR_CHARGE,decimal=7)
     
-#def test_compute_exchange(R_MAX,SAMPLES):
- #   test_atom = He(R_MAX,SAMPLES)
-  #  assert(np.all(test_atom.V_X>=0))
+@given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
+       R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
+def test_compute_correlation_potential(R_MAX,SAMPLES):
+    test_atom = He(R_MAX,SAMPLES)
+    #using a random WF
+    u=np.random.rand(SAMPLES)
+    probability_density=u**2
+    probability = np.trapz(probability_density,test_atom.r) 
+    #the probability of finding an electron has to be = 1
+    probability_density = probability_density/probability 
+    test_atom.u = probability_density**0.5
+    test_atom.rho=2*probability_density
+    test_atom.compute_correlation_potential(SAMPLES)
+    #tests correct sign and no divergance
+    assert(np.all(test_atom.V_C<=0))
+    assert(test_atom.V_C[0]==0)
+    
+@given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
+       R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
+def test_compute_exchange_potential(R_MAX,SAMPLES):
+    test_atom = He(R_MAX,SAMPLES)
+    #using a random WF
+    u=np.random.rand(SAMPLES)
+    probability_density=u**2
+    probability = np.trapz(probability_density,test_atom.r) 
+    #the probability of finding an electron has to be = 1
+    probability_density = probability_density/probability 
+    test_atom.u = probability_density**0.5
+    test_atom.rho=2*probability_density
+    test_atom.compute_exchange_potential()
+    #tests correct sign and no divergance
+    assert(np.all(test_atom.V_X<=0))
+    assert(test_atom.V_X[0]==0)
+
+
+
     
     
     
