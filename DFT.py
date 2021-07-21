@@ -45,12 +45,13 @@ class He:
         self.V_X = np.zeros(SAMPLES) #exchange potential
         self.V_C = np.zeros(SAMPLES) #correlation potential
         self.V_N = np.zeros(SAMPLES) #nuclear potential
+        self.V = np.zeros(SAMPLES) #total potential
         self.u = np.zeros(SAMPLES) #radial function
         self.V_N[1:] = - NUCLEAR_CHARGE / self.r[1:] #initializing nuclear potential
         self.V_N[0]=0 #otherwise it diverges at 0
 
 
-    def compute_hartree_potential(self):
+    def compute_hartree_potential(self,SAMPLES):
         #   Compute Hartree potential from solving the Poisson equation
         #   U_H''(r) = -rho(r) / r
         #   with the boundary conditions U_H(0) = 0, U_H(r_max) = NUCLEAR_CHARGE.
@@ -71,7 +72,7 @@ class He:
     def compute_exchange_potential(self):
         self.V_X[1:] = -np.cbrt(3*self.rho[1:]/(4*pi**2*self.r[1:]**2)) #Slater Potential
         self.V_X[0] = 0 #otherwise it diverges at 0
-    def compute_correlation_potential(self):
+    def compute_correlation_potential(self,SAMPLES):
         #Compute the correlation potential according to Ceperly-Alder
         #parameterization for the spin unpolarized system.
         A , B, C, D, GAM, BETA1, BETA2 = 0.0311, -0.048, 0.002, -0.0116, -0.1423, 1.0529, 0.3334
@@ -80,7 +81,9 @@ class He:
             else:
                 rs = np.cbrt(3 * self.r[i]**2 / self.rho[i])
                 if rs <1 : self.V_C[i] = A*np.log(rs) + B - A/3 + C*2/3*rs*np.log(rs) + (2*D-C)*rs/3
-                elif rs < 1e10 : self.V_C[i] = GAM / (1 + BETA1*rs**0.5 + BETA2*rs) * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs)
+                elif rs < 1e10 : 
+                    e_c = GAM / (1 + BETA1*rs**0.5 + BETA2*rs)
+                    self.V_C[i] = e_c * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs)
                 else: self.V_C[i]=0
 
     def hse_normalize(self): #to normalize radial u wavefunction
@@ -90,7 +93,7 @@ class He:
         probability_density = probability_density/probability 
         self.u = probability_density**0.5
 
-    def hse_integrate(self, L, E_N):
+    def hse_integrate(self, L,SAMPLES, E_N):
           step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
           #setting boundary codition
           self.u[-1] = self.r[-1]*np.exp(-self.r[-1])
@@ -99,13 +102,19 @@ class He:
           for i in range(SAMPLES-2,0,-1):
               self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
     
-    def hse_solve(self,N,L): #solve SE
+    def hse_solve(self,N,L,SAMPLES): 
+        """Solves Schrodinger problem with precision PREC_HSE on energy eignvalue,
+            the bisection method is used to find the eignvalue.
+            Even if the quantum numbers N,L are always 0,1 for He,
+            they were left as variables as the formulas are more clear.
+            Returns the energy eignvalue
+        """
         E_N=0
         E_max =  0
         E_min = HSE_E_MIN
         while np.abs(E_max-E_min) > PREC_HSE:
             E_N = (E_min+E_max)/2  #bisection method
-            self.hse_integrate(L,E_N) #solve SE
+            self.hse_integrate(L,SAMPLES,E_N) #solve SE
             nodes = 0 #look for nodes
             for i in range(0,SAMPLES-1):
                 if self.u[i]*self.u[i+1] < 0: nodes+=1
@@ -116,30 +125,31 @@ class He:
         return E_N
         
 
-    def potential_energy(self, V): #computes the energy of given potential
+    def potential_energy(self, V): 
+        #computes the energy of given potential V
         return np.trapz(V*self.u**2,self.r)
 
-    def hdft(self):
+    def hdft(self,SAMPLES):
         last_total_energy = 1
         self.total_energy = 0
         while(np.abs(last_total_energy-self.total_energy)>PREC_DFT):
             last_total_energy = self.total_energy
-            #breakpoint()
-            self.compute_hartree_potential()
+            self.compute_hartree_potential(SAMPLES)
             self.compute_exchange_potential()
-            self.compute_correlation_potential()
+            self.compute_correlation_potential(SAMPLES)
             self.V = self.V_N + self.V_H  + self.V_X + self.V_C 
             #L is always 0 because s orbital, N = 1
-            self.E_k = self.hse_solve(1, 0) #N,L
+            self.E_k = self.hse_solve(1, 0,SAMPLES) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
             self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2 
-        return self.total_energy      
+        return self.total_energy    
         
     def plot_density(self):
         """
         plots in the range [0:4] the electronic density computed
-        the hydrogen-like result is plotted for comparison
+        the hydrogen-like result is plotted for comparison,
+        the save path is taken from the config file
         """
         fig, ax = plt.subplots(figsize=(7,3))
         ax.plot(atom.r[self.r<4],atom.rho[self.r<4],label='density')
@@ -151,6 +161,10 @@ class He:
         fig.savefig(plot1_path,dpi=100)
         
     def plot_potentials(self):
+        """
+        plots in the range [0:12] the different potentials computed,
+        the save path is taken from the config file
+        """
         fig, (ax1,ax2) = plt.subplots(2,1,figsize=(7,4))
         ax1.plot(atom.r[self.r<12],atom.V_H[self.r<12],label="V_H")
         ax1.plot(atom.r[self.r<12],atom.V_X[self.r<12],label="V_X")
@@ -166,12 +180,18 @@ class He:
         fig.savefig(plot2_path,dpi=100)
         
     def save_data(self):
+        """
+        saves the main results into a txt file, 
+        the save path is taken from the config file
+        """
         zipped = zip(self.r,self.u,self.rho,self.V)
         np.savetxt(data_path,list(zipped),fmt='%.5e',delimiter='\t',header="R [Å] \t single electron WF \t density \t V [a.u.]")
-        
+
+#after creating the object and launching the main method      
 atom = He(R_MAX,SAMPLES)
-atom.hdft()
+atom.hdft(SAMPLES)
 print("Total energy ",round(atom.total_energy,3)," a.u")
+#the data is plotted and saved into a file
 atom.save_data()
 atom.plot_density()
 atom.plot_potentials()
