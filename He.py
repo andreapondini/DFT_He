@@ -145,7 +145,7 @@ class He:
         fig, ax = plt.subplots(figsize=(7,3))
         ax.plot(self.r[self.r<4],self.rho[self.r<4],label='density')
         ax.plot(self.r[self.r<4],2*hydrogen_like_wavefunc(self.r[self.r<4])**2,label="hydrogen like density")
-        ax.set(title='Wavefunction',xlabel='r [Å]')
+        ax.set(title='Density',xlabel='r [Å]')
         ax.legend(loc = 'upper right')
         ax.grid()
         fig.tight_layout()
