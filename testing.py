@@ -48,7 +48,7 @@ def test_He_init(R_MAX,SAMPLES):
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_compute_hartee_potential(R_MAX,SAMPLES):
-        """
+    """
 
     Parameters
     ----------
