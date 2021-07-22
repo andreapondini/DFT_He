@@ -12,6 +12,23 @@ config = configparser.ConfigParser()
 config.read("configuration.txt")
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))), R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_He_init(R_MAX,SAMPLES):
+    """
+
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+
+    TESTS
+    ----------
+        the edge values of r, 
+        the correct array dimensions of attributes,
+        correct sign of nuclear potential
+
+    """
+    
     test_atom = He(R_MAX,SAMPLES)
     #tests edge values for r
     assert(test_atom.r[-1]==R_MAX)
@@ -31,6 +48,21 @@ def test_He_init(R_MAX,SAMPLES):
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_compute_hartee_potential(R_MAX,SAMPLES):
+        """
+
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+
+    TESTS
+    ----------
+        correct sign of Hartree potential,
+        boundary conditions of Hartree potential
+
+    """
     test_atom = He(R_MAX,SAMPLES)
     #using a random WF
     test_atom.u=np.random.rand(SAMPLES)
@@ -44,19 +76,47 @@ def test_compute_hartee_potential(R_MAX,SAMPLES):
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_compute_correlation_potential(R_MAX,SAMPLES):
+    """
+
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+
+    TESTS
+    ----------
+        correct sign of Correlation potential and no divergence
+
+    """
     test_atom = He(R_MAX,SAMPLES)
     #using a random WF
     test_atom.u=np.random.rand(SAMPLES)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     test_atom.compute_correlation_potential(SAMPLES)
-    #tests correct sign and no divergance
+    #tests correct sign and no divergence
     assert(np.all(test_atom.V_C<=0))
     assert(test_atom.V_C[0]==0)
     
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_compute_exchange_potential(R_MAX,SAMPLES):
+    """
+
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+
+    TESTS
+    ----------
+        correct sign of exchange potential and no divergence
+
+    """
     test_atom = He(R_MAX,SAMPLES)
     #using a random WF
     test_atom.u=np.random.rand(SAMPLES)
@@ -70,6 +130,21 @@ def test_compute_exchange_potential(R_MAX,SAMPLES):
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_hse_normalize(R_MAX,SAMPLES):
+    """
+
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+
+    TESTS
+    ----------
+        correct sign of WF and density,
+        good normalization
+
+    """
     test_atom = He(R_MAX,SAMPLES)
     #using a random WF
     test_atom.u=np.random.rand(SAMPLES)
@@ -86,6 +161,23 @@ def test_hse_normalize(R_MAX,SAMPLES):
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))),
        E_N = st.floats(float(config.get('settings', 'HSE_E_MIN')),0))
 def test_hse_integrate(R_MAX,SAMPLES,E_N):
+    """
+
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+    E_N : float
+        energy to use in the solution of SE
+
+    TESTS
+    ----------
+        boundary conditions of WF,
+        continuity of WF
+
+    """
     test_atom = He(R_MAX,SAMPLES)
     #using a random WF
     test_atom.u=np.random.rand(SAMPLES)
@@ -109,6 +201,20 @@ def test_hse_integrate(R_MAX,SAMPLES,E_N):
        R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 @settings(deadline=timedelta(seconds=1))
 def test_hse_solve(R_MAX,SAMPLES):
+    """
+    Parameters
+    ----------
+    R_MAX : float
+        maximum value of r.
+    SAMPLES : integer
+        number of divisions of the radial space.
+
+    TESTS
+    ----------
+        that the conputed WF has 1s orbital properties,
+        energy eignvalue has to be negative and within range
+
+    """
     test_atom = He(R_MAX,SAMPLES)
     #using a random WF
     test_atom.u=np.random.rand(SAMPLES)
