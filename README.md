@@ -53,6 +53,14 @@ The main files of the program are:
 4. [testing.py](https://github.com/andreapondini/DFT_He/blob/M/testing.py) : contains all the tests for the methods of [He.py](https://github.com/andreapondini/DFT_He/blob/M/He.py) using hypothesis testing.
 5. [requirements.txt](https://github.com/andreapondini/DFT_He/blob/M/requirements.txt) : Containes the dependencies needed in order for the script to run. THe file was obtained using [pipreqs](https://pypi.org/project/pipreqs/).
 
+To run the script first install the dependencies:
+
+pip install -r requirements.txt
+
+And then launch the main script:
+
+python DFT.py
+
 ## Main results
 <a href="https://ibb.co/nrYSXPV"><img src="https://i.ibb.co/K6fHtKQ/Density.png" alt="Density" border="0" width = 400px height = auto></a>
 <a href="https://ibb.co/dPcM2sJ"><img src="https://i.ibb.co/Cbt87ps/Potentials.png" alt="Potentials" border="0" width = 400px height = auto></a>
