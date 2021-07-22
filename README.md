@@ -57,9 +57,9 @@ To run the script first install the dependencies:
 
 pip install -r requirements.txt
 
-And then launch the main script with the correct configuration file:
+And then launch the main script:
 
-python DFT.py configuration.txt
+python DFT.py
 
 ## Main results
 <a href="https://ibb.co/nrYSXPV"><img src="https://i.ibb.co/K6fHtKQ/Density.png" alt="Density" border="0" width = 400px height = auto></a>

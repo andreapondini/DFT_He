@@ -1,15 +1,16 @@
 from He import He
 import configparser
 import numpy as np
-import hypothesis
 from hypothesis import strategies as st
 from hypothesis import given
 from hypothesis import settings
 from datetime import timedelta
 
-NUCLEAR_CHARGE = 2
 config = configparser.ConfigParser()
 config.read("configuration.txt")
+
+NUCLEAR_CHARGE = 2
+
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))), R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_He_init(R_MAX,SAMPLES):
     """
