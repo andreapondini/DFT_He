@@ -1,4 +1,4 @@
-from DFT import He
+from He import He
 import configparser
 import numpy as np
 import hypothesis
@@ -128,14 +128,6 @@ def test_hse_solve(R_MAX,SAMPLES):
     #energy eignvalue needs to be negative and within range
     assert(test_atom.E_k < 0 and test_atom.E_k > float(config.get('settings','HSE_E_MIN')))
 
-#V is a list with too many values in order to perform hypothesis testing
-def test_potential_energy():
-    R_MAX = float(config.get('settings', 'R_MAX'))
-    SAMPLES = int(config.get('settings', 'SAMPLES'))
-    test_atom = He(R_MAX,SAMPLES)
-    test_atom.V=(np.random.rand(SAMPLES)-0.5)*10
-    pot_energy = test_atom.potential_energy(test_atom.V)
-    assert(type(pot_energy) == np.float64)
     
     
     
