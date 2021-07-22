@@ -37,7 +37,7 @@ The correlation term is implemented using the Ceperley Alder parametrization:
 
 <a href="https://ibb.co/PjkSpNq"><img src="https://i.ibb.co/kBZdnxN/ec.png" alt="ec" border="0" width = 400px height = auto></a>
 
-<a href="https://ibb.co/fpYyQyV"><img src="https://i.ibb.co/LtzcvcD/Vc.png" alt="Vc" border="0" width = 400px height = auto>></a>
+<a href="https://ibb.co/fpYyQyV"><img src="https://i.ibb.co/LtzcvcD/Vc.png" alt="Vc" border="0" width = 400px height = auto></a>
 
 with ***r<sub>S</sub> = (4πn/3)<sup>1/3</sup>***.
 
@@ -45,3 +45,17 @@ The potential enegy for each potential is given by ***E<sub>i</sub> = ∫dr V<su
 
 ***E<sub>tot</sub> = 2E - E<sub>H</sub> - E<sub>X</sub>/2 - E<sub>C</sub>/2***.
 
+## Structure of the project
+The main files of the program are:
+1. [configuration.txt](https://github.com/andreapondini/DFT_He/blob/M/configuration.txt) : This file contains all the major parameters used in the simulation such as the precision  of the SE eignvalues (PREC_HSE) and the ground energy (PREC_DFT). Also the range (R_MAX) and the number of points (SAMPLES) in the radial space are specified, as well as the energy range (HSE_E_MIN) in which to look for the SE eignvalues. In addition to these parameters, the paths where the output files are saved are specified. If the user wants to modify these parameters, he has to change them in the text file.
+2. [He.py](https://github.com/andreapondini/DFT_He/blob/M/He.py) : This file contains the main class of the programm. The He class has as attributes the radial WF (u) and density (rho), as well as the kinetic nergy of electrons (E_K), total energy (total_energy) the potentials (V_N,V_X,V_C,V_H,V). There are methods in order to compute the potentials as well as solving the SE and normalzing the WF. The main method is the hdft method which solves iteratively the SE updating the potentials as a new density is computed. Some methods in order to plot an save the results to files are present. The parameters used are taken from the [configuration](https://github.com/andreapondini/DFT_He/blob/M/configuration.txt) file.
+3. [DFT.py](https://github.com/andreapondini/DFT_He/blob/M/DFT.py) : This is the script that actually runs the simulation. After instancing an object of the class [He](https://github.com/andreapondini/DFT_He/blob/M/He.py), the methods to perform the simulation and to save the results are called.
+4. [testing.py](https://github.com/andreapondini/DFT_He/blob/M/testing.py) : contains all the tests for the methods of [He.py](https://github.com/andreapondini/DFT_He/blob/M/He.py) using hypothesis testing.
+
+## Main results
+<a href="https://ibb.co/nrYSXPV"><img src="https://i.ibb.co/K6fHtKQ/Density.png" alt="Density" border="0" width = 400px height = auto></a>
+<a href="https://ibb.co/dPcM2sJ"><img src="https://i.ibb.co/Cbt87ps/Potentials.png" alt="Potentials" border="0" width = 400px height = auto></a>
+
+The ground energy of the He atom using the  Ceperley-Alder LDA approximation and the Slater exchange potential is:
+
+***E = -2.817 a.u***
