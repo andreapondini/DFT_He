@@ -6,9 +6,10 @@ Created on Fri May 21 23:05:23 2021
 """
 import configparser
 from He import He
+from sys import argv
 
 config = configparser.ConfigParser()
-config.read("configuration.txt")
+config.read(argv[1])
 
 SAMPLES = config.get('settings', 'SAMPLES')
 R_MAX = config.get('settings', 'R_MAX')

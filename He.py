@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import configparser
+from sys import argv
 
 NUCLEAR_CHARGE = 2
 pi = np.pi
 NUCLEAR_CHARGE = 2
 config = configparser.ConfigParser()
-config.read("configuration.txt")
+config.read(argv[1])
 
 def hydrogen_like_wavefunc(x):
     """
