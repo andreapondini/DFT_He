@@ -43,9 +43,9 @@ class He:
 
 
     def compute_hartree_potential(self,SAMPLES):
-        #   Compute Hartree potential from solving the Poisson equation
-        #   U_H''(r) = -rho(r) / r
-        #   with the boundary conditions U_H(0) = 0, U_H(r_max) = NUCLEAR_CHARGE.
+        """Computes Hartree potential from solving the Poisson equation
+        U_H''(r) = -rho(r) / r
+        with the boundary conditions U_H(0) = 0, U_H(r_max) = NUCLEAR_CHARGE"""
         U_H = np.zeros(SAMPLES)
         U_H[0] = 0
         U_H[1] = 0
@@ -60,12 +60,15 @@ class He:
         #get the Hartree potential from U_H
         self.V_H[1:] = U_H[1:] / self.r[1:]
         self.V_H[0] = 0
+        
     def compute_exchange_potential(self):
+        "Computes exchange potential using Slater approx"
         self.V_X[1:] = -np.cbrt(3*self.rho[1:]/(4*pi**2*self.r[1:]**2)) #Slater Potential
         self.V_X[0] = 0 #otherwise it diverges at 0
+        
     def compute_correlation_potential(self,SAMPLES):
-        #Compute the correlation potential according to Ceperly-Alder
-        #parameterization for the spin unpolarized system.
+        """Compute the correlation potential according to Ceperly-Alder
+        #parameterization for the spin unpolarized system."""
         A , B, C, D, GAM, BETA1, BETA2 = 0.0311, -0.048, 0.002, -0.0116, -0.1423, 1.0529, 0.3334
         for i in range(1,SAMPLES):
             if self.rho[i] < 1e-10: self.V_C[i] = 0
@@ -77,7 +80,9 @@ class He:
                     self.V_C[i] = e_c * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs)
                 else: self.V_C[i]=0
 
-    def hse_normalize(self): #to normalize radial u wavefunction
+    def hse_normalize(self): 
+        """Normalizes radial u wavefunction
+        in order to have the probability of finding a single electron = 1"""
         probability_density=self.u**2
         probability = np.trapz(probability_density,self.r) 
         #the probability of finding an electron has to be = 1
@@ -85,6 +90,7 @@ class He:
         self.u = probability_density**0.5
 
     def hse_integrate(self, L,SAMPLES, E_N):
+          "Sovles the SE using Verlet's algorithm"
           step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
           #setting boundary codition
           self.u[-1] = self.r[-1]*np.exp(-self.r[-1])
@@ -94,11 +100,12 @@ class He:
               self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
     
     def hse_solve(self,N,L,SAMPLES): 
-        """Solves Schrodinger problem with precision PREC_HSE on energy eignvalue,
-            the bisection method is used to find the eignvalue.
-            Even if the quantum numbers N,L are always 0,1 for He,
-            they were left as variables as the formulas are more clear.
-            Returns the energy eignvalue
+        """
+        Solves Schrodinger problem with precision PREC_HSE on energy eignvalue,
+        the bisection method is used to find the eignvalue.
+        Even if the quantum numbers N,L are always 0,1 for He,
+        they were left as variables as the formulas are more clear.
+        Returns the energy eignvalue
         """
         E_N=0
         E_max =  0
@@ -115,12 +122,18 @@ class He:
         self.hse_normalize() #normalize WF
         return E_N
         
-
     def potential_energy(self, V): 
-        #computes the energy of given potential V
+        """
+        Computes the energy of given potential V,
+        returns the energy as a np.float64
+        """
         return np.trapz(V*self.u**2,self.r)
 
     def hdft(self,SAMPLES):
+        """
+        Reiterates the solution of the SE,
+        updating the potentials each time that a new denisty is obtained
+        """
         last_total_energy = 1
         self.total_energy = 0
         while(np.abs(last_total_energy-self.total_energy)>PREC_DFT):
@@ -133,8 +146,7 @@ class He:
             self.E_k = self.hse_solve(1, 0,SAMPLES) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
-            self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2 
-        return self.total_energy    
+            self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2    
         
     def plot_density(self):
         """
