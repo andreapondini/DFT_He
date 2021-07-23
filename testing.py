@@ -199,9 +199,11 @@ def test_hse_integrate(R_MAX,SAMPLES,E_N):
     assert(abs(test_atom.u[i]-test_atom.u[i+1])< R_MAX/SAMPLES for i in range(0,SAMPLES-1))
 
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))),
-       R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
+       R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))),
+       PREC_HSE = st.floats(10e-10,float(config.get('settings','PREC_HSE'))),
+       HSE_E_MIN = st.floats(float(config.get('settings','HSE_E_MIN')),-3))
 @settings(deadline=timedelta(seconds=1))
-def test_hse_solve(R_MAX,SAMPLES):
+def test_hse_solve(R_MAX,SAMPLES,PREC_HSE,HSE_E_MIN):
     """
     Parameters
     ----------
@@ -228,7 +230,7 @@ def test_hse_solve(R_MAX,SAMPLES):
     test_atom.compute_hartree_potential(SAMPLES)
     test_atom.V = test_atom.V_N + test_atom.V_H + test_atom.V_X + test_atom.V_C
     #compute new wavefunction using potentials
-    test_atom.E_k = test_atom.hse_solve(1,0,SAMPLES)
+    test_atom.E_k = test_atom.hse_solve(1,0,SAMPLES,PREC_HSE,HSE_E_MIN)
     #1s orbitals have no nodes, wf needs to be positive
     #(checked before normalizing)
     assert(np.all(test_atom.u[1:] > 0))
