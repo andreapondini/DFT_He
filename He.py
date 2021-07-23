@@ -17,16 +17,10 @@ def hydrogen_like_wavefunc(x):
     """
     return x*np.exp(-NUCLEAR_CHARGE*x)/np.trapz((x*np.exp(-NUCLEAR_CHARGE*x))**2,x)**0.5
 
-PREC_DFT = config.get('settings', 'PREC_DFT')
-PREC_HSE = config.get('settings', 'PREC_HSE')
-HSE_E_MIN = config.get('settings', 'HSE_E_MIN')
+
 plot1_path = config.get('paths', 'density_plot')
 plot2_path = config.get('paths', 'potentials_plot')
 data_path = config.get('paths','data')
-
-PREC_DFT = float(PREC_DFT)
-PREC_HSE = float(PREC_HSE)
-HSE_E_MIN = int(HSE_E_MIN)
 
 class He:
     def __init__(self,R_MAX,SAMPLES):
@@ -143,7 +137,7 @@ class He:
         for i in range(SAMPLES-2,0,-1):
             self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
     
-    def hse_solve(self,N,L,SAMPLES): 
+    def hse_solve(self,N,L,SAMPLES,PREC_HSE,HSE_E_MIN): 
         """
         Parameters
         ----------
@@ -194,7 +188,7 @@ class He:
         """
         return np.trapz(V*self.u**2,self.r)
 
-    def hdft(self,SAMPLES):
+    def hdft(self,SAMPLES,PREC_DFT,PREC_HSE,HSE_E_MIN):
         """
         Parameters
         ----------
@@ -213,7 +207,7 @@ class He:
             self.compute_correlation_potential(SAMPLES)
             self.V = self.V_N + self.V_H  + self.V_X + self.V_C 
             #L is always 0 because s orbital, N = 1
-            self.E_k = self.hse_solve(1, 0,SAMPLES) #N,L
+            self.E_k = self.hse_solve(1, 0,SAMPLES,PREC_HSE,HSE_E_MIN) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
             self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2    
