@@ -69,7 +69,7 @@ def test_compute_hartee_potential(R_MAX,SAMPLES):
     test_atom.u=np.random.rand(SAMPLES)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
-    test_atom.compute_hartree_potential(SAMPLES)
+    test_atom.compute_hartree_potential()
     assert(np.all(test_atom.V_H >= 0))
     #tests that the boundary condition is matched
     np.testing.assert_almost_equal(test_atom.V_H[-1]*test_atom.r[-1],NUCLEAR_CHARGE,decimal=7)
@@ -96,7 +96,7 @@ def test_compute_correlation_potential(R_MAX,SAMPLES):
     test_atom.u=np.random.rand(SAMPLES)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
-    test_atom.compute_correlation_potential(SAMPLES)
+    test_atom.compute_correlation_potential()
     #tests correct sign and no divergence
     assert(np.all(test_atom.V_C<=0))
     assert(test_atom.V_C[0]==0)
@@ -185,12 +185,12 @@ def test_hse_integrate(R_MAX,SAMPLES,E_N):
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     #computing potentials for random WF
-    test_atom.compute_correlation_potential(SAMPLES)
+    test_atom.compute_correlation_potential()
     test_atom.compute_exchange_potential()
-    test_atom.compute_hartree_potential(SAMPLES)
+    test_atom.compute_hartree_potential()
     test_atom.V = test_atom.V_N + test_atom.V_H + test_atom.V_X + test_atom.V_C
     #obtain new wavefunction integrating using a random energy
-    test_atom.hse_integrate(1,SAMPLES,E_N)
+    test_atom.hse_integrate(1,E_N)
     #this wavefunction is not an eignvalue but still needs to have basic properties
     #verify boundary condition at R_MAX
     assert(test_atom.u[-2] == test_atom.r[-2]*np.exp(-test_atom.r[-2]))
@@ -225,12 +225,12 @@ def test_hse_solve(R_MAX,SAMPLES,PREC_HSE,HSE_E_MIN):
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     #computing potentials using random WF
-    test_atom.compute_correlation_potential(SAMPLES)
+    test_atom.compute_correlation_potential()
     test_atom.compute_exchange_potential()
-    test_atom.compute_hartree_potential(SAMPLES)
+    test_atom.compute_hartree_potential()
     test_atom.V = test_atom.V_N + test_atom.V_H + test_atom.V_X + test_atom.V_C
     #compute new wavefunction using potentials
-    test_atom.E_k = test_atom.hse_solve(1,0,SAMPLES,PREC_HSE,HSE_E_MIN)
+    test_atom.E_k = test_atom.hse_solve(1,0,PREC_HSE,HSE_E_MIN)
     #1s orbitals have no nodes, wf needs to be positive
     #(checked before normalizing)
     assert(np.all(test_atom.u[1:] > 0))

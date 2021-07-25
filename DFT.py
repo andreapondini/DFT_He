@@ -24,7 +24,7 @@ HSE_E_MIN = int(HSE_E_MIN)
 
 #after creating the object and launching the main method      
 atom = He(R_MAX,SAMPLES)
-atom.hdft(SAMPLES,PREC_DFT,PREC_HSE,HSE_E_MIN)
+atom.hdft(PREC_DFT,PREC_HSE,HSE_E_MIN)
 print("Total energy ",round(atom.total_energy,3)," a.u")
 #the data is plotted and saved into a file
 atom.save_data()

@@ -35,6 +35,7 @@ class He:
         Initialized al the attributes and computes nuclear potential
         
         """
+        self.SAMPLES = SAMPLES
         self.r = np.linspace(0,R_MAX,SAMPLES) #radial vector space
         self.E_k = 0  #kinetic energy
         self.total_energy = 0
@@ -49,7 +50,7 @@ class He:
         self.V_N[0]=0 #otherwise it diverges at 0
 
 
-    def compute_hartree_potential(self,SAMPLES):
+    def compute_hartree_potential(self):
         """
         Parameters
         ----------
@@ -61,12 +62,12 @@ class He:
         with the boundary conditions U_H(0) = 0, U_H(r_max) = NUCLEAR_CHARGE    
         """
         
-        U_H = np.zeros(SAMPLES)
+        U_H = np.zeros(self.SAMPLES)
         U_H[0] = 0
         U_H[1] = 0
         # outwards integration using Verlet algorithm
-        step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
-        for i in range(1,SAMPLES-1):
+        step = (self.r[-1] - self.r[0]) / (self.SAMPLES-1)
+        for i in range(1,self.SAMPLES-1):
             U_H[i+1] = 2*U_H[i] - U_H[i-1] - step**2 * self.rho[i]/self.r[i]
         # match boundary condition at r_max:
         # full charge of all electron within r_max
@@ -83,7 +84,7 @@ class He:
         self.V_X[1:] = -np.cbrt(3*self.rho[1:]/(4*pi**2*self.r[1:]**2)) #Slater Potential
         self.V_X[0] = 0 #otherwise it diverges at 0
         
-    def compute_correlation_potential(self,SAMPLES):
+    def compute_correlation_potential(self):
         """
         Parameters
         ----------
@@ -94,7 +95,7 @@ class He:
         parameterization for the spin unpolarized system.
         """
         A , B, C, D, GAM, BETA1, BETA2 = 0.0311, -0.048, 0.002, -0.0116, -0.1423, 1.0529, 0.3334
-        for i in range(1,SAMPLES):
+        for i in range(1,self.SAMPLES):
             if self.rho[i] < 1e-10: self.V_C[i] = 0
             else:
                 rs = np.cbrt(3 * self.r[i]**2 / self.rho[i])
@@ -115,7 +116,7 @@ class He:
         probability_density = probability_density/probability 
         self.u = probability_density**0.5
 
-    def hse_integrate(self, L,SAMPLES, E_N):
+    def hse_integrate(self, L, E_N):
         """
         Parameters
         ----------
@@ -129,15 +130,15 @@ class He:
         Solves the SE and updates u using Verlet's algorithm
         
         """
-        step = (self.r[-1] - self.r[0]) / (SAMPLES-1)
+        step = (self.r[-1] - self.r[0]) / (self.SAMPLES-1)
         #setting boundary codition
         self.u[-1] = self.r[-1]*np.exp(-self.r[-1])
         self.u[-2]= self.r[-2]*np.exp(-self.r[-2])
         #integrate inward using Verlet algorithm
-        for i in range(SAMPLES-2,0,-1):
+        for i in range(self.SAMPLES-2,0,-1):
             self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
     
-    def hse_solve(self,N,L,SAMPLES,PREC_HSE,HSE_E_MIN): 
+    def hse_solve(self,N,L,PREC_HSE,HSE_E_MIN): 
         """
         Parameters
         ----------
@@ -162,9 +163,9 @@ class He:
         E_min = HSE_E_MIN
         while np.abs(E_max-E_min) > PREC_HSE:
             E_N = (E_min+E_max)/2  #bisection method
-            self.hse_integrate(L,SAMPLES,E_N) #solve SE
+            self.hse_integrate(L,E_N) #solve SE
             nodes = 0 #look for nodes
-            for i in range(0,SAMPLES-1):
+            for i in range(0,self.SAMPLES-1):
                 if self.u[i]*self.u[i+1] < 0: nodes+=1
             #continue search in the above or below half of energy range
             if (nodes > N-L-1): E_max = E_N
@@ -188,7 +189,7 @@ class He:
         """
         return np.trapz(V*self.u**2,self.r)
 
-    def hdft(self,SAMPLES,PREC_DFT,PREC_HSE,HSE_E_MIN):
+    def hdft(self,PREC_DFT,PREC_HSE,HSE_E_MIN):
         """
         Parameters
         ----------
@@ -202,12 +203,12 @@ class He:
         self.total_energy = 0
         while(np.abs(last_total_energy-self.total_energy)>PREC_DFT):
             last_total_energy = self.total_energy
-            self.compute_hartree_potential(SAMPLES)
+            self.compute_hartree_potential()
             self.compute_exchange_potential()
-            self.compute_correlation_potential(SAMPLES)
+            self.compute_correlation_potential()
             self.V = self.V_N + self.V_H  + self.V_X + self.V_C 
             #L is always 0 because s orbital, N = 1
-            self.E_k = self.hse_solve(1, 0,SAMPLES,PREC_HSE,HSE_E_MIN) #N,L
+            self.E_k = self.hse_solve(1, 0,PREC_HSE,HSE_E_MIN) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
             #total energy of the 2 electrons + potential energy
             self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2    
