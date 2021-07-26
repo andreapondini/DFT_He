@@ -6,6 +6,7 @@ Created on Fri May 21 23:05:23 2021
 """
 import configparser
 from He import He
+from plotting import save_data, plot_potentials, plot_density, save_plots
 
 config = configparser.ConfigParser()
 config.read("configuration.txt")
@@ -15,6 +16,9 @@ R_MAX = config.get('settings', 'R_MAX')
 PREC_DFT = config.get('settings', 'PREC_DFT')
 PREC_HSE = config.get('settings', 'PREC_HSE')
 HSE_E_MIN = config.get('settings', 'HSE_E_MIN')
+density_plot_path = config.get('paths', 'density_plot')
+potential_plot_path = config.get('paths', 'potentials_plot')
+data_path = config.get('paths','data')
 
 SAMPLES = int(SAMPLES)
 R_MAX = float(R_MAX)    
@@ -27,6 +31,7 @@ atom = He(R_MAX,SAMPLES)
 atom.hdft(PREC_DFT,PREC_HSE,HSE_E_MIN)
 print("Total energy ",round(atom.total_energy,3)," a.u")
 #the data is plotted and saved into a file
-atom.save_data()
-atom.plot_density()
-atom.plot_potentials()
+save_data(atom,data_path)
+fig1 = plot_density(atom)
+fig2 = plot_potentials(atom)
+save_plots(fig1, fig2, density_plot_path, potential_plot_path)

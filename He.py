@@ -1,12 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import configparser
 
-
-config = configparser.ConfigParser()
-config.read("configuration.txt")
-
-NUCLEAR_CHARGE = 2
 pi = np.pi
 NUCLEAR_CHARGE = 2
 
@@ -16,11 +9,6 @@ def hydrogen_like_wavefunc(x):
     where there's no interaction between the electrons
     """
     return x*np.exp(-NUCLEAR_CHARGE*x)/np.trapz((x*np.exp(-NUCLEAR_CHARGE*x))**2,x)**0.5
-
-
-plot1_path = config.get('paths', 'density_plot')
-plot2_path = config.get('paths', 'potentials_plot')
-data_path = config.get('paths','data')
 
 class He:
     def __init__(self,R_MAX,SAMPLES):
@@ -213,44 +201,3 @@ class He:
             #total energy of the 2 electrons + potential energy
             self.total_energy = 2*self.E_k - self.potential_energy(self.V_H)  - self.potential_energy(self.V_X)/2 - self.potential_energy(self.V_C)/2    
         
-    def plot_density(self):
-        """
-        Plots in the range [0:4] the electronic density computed
-        the hydrogen-like result is plotted for comparison,
-        the save path is taken from the config file
-        """
-        fig, ax = plt.subplots(figsize=(7,3))
-        ax.plot(self.r[self.r<4],self.rho[self.r<4],label='density')
-        ax.plot(self.r[self.r<4],2*hydrogen_like_wavefunc(self.r[self.r<4])**2,label="hydrogen like density")
-        ax.set(title='Density',xlabel='r [Å]')
-        ax.legend(loc = 'upper right')
-        ax.grid()
-        fig.tight_layout()
-        fig.savefig(plot1_path,dpi=100)
-        
-    def plot_potentials(self):
-        """
-        Plots in the range [0:12] the different potentials computed,
-        the save path is taken from the config file
-        """
-        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(7,4))
-        ax1.plot(self.r[self.r<12],self.V_H[self.r<12],label="V_H")
-        ax1.plot(self.r[self.r<12],self.V_X[self.r<12],label="V_X")
-        ax1.plot(self.r[self.r<12],self.V_C[self.r<12],label="V_C")
-        ax1.set(title='Potentials',ylabel= 'Energy [a.u]')
-        ax1.legend(loc = 'upper right')
-        ax1.grid()
-        ax2.set(xlabel='r [Å]',ylabel= 'Energy [a.u]')
-        ax2.plot(self.r[self.r<12],self.V_C[self.r<12],label="V_C")
-        ax2.legend(loc = 'lower right')
-        ax2.grid()
-        fig.tight_layout()
-        fig.savefig(plot2_path,dpi=100)
-        
-    def save_data(self):
-        """
-        Saves the main results into a txt file, 
-        the save path is taken from the config file
-        """
-        zipped = zip(self.r,self.u,self.rho,self.V)
-        np.savetxt(data_path,list(zipped),fmt='%.5e',delimiter='\t',header="R [Å] \t single electron WF \t density \t V [a.u.]")
