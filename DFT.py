@@ -7,9 +7,10 @@ Created on Fri May 21 23:05:23 2021
 import configparser
 from He import He
 from plotting import save_data, plot_potentials, plot_density, save_plots
+from sys import argv
 
 config = configparser.ConfigParser()
-config.read("configuration.txt")
+config.read(argv[1])
 
 SAMPLES = config.get('settings', 'SAMPLES')
 R_MAX = config.get('settings', 'R_MAX')
@@ -30,7 +31,7 @@ HSE_E_MIN = int(HSE_E_MIN)
 atom = He(R_MAX,SAMPLES)
 atom.hdft(PREC_DFT,PREC_HSE,HSE_E_MIN)
 print("Total energy ",round(atom.total_energy,3)," a.u")
-#the data is plotted and saved into a file
+#the data is plotted and saved into files
 save_data(atom,data_path)
 fig1 = plot_density(atom)
 fig2 = plot_potentials(atom)
