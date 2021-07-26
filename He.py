@@ -3,13 +3,6 @@ import numpy as np
 pi = np.pi
 NUCLEAR_CHARGE = 2
 
-def hydrogen_like_wavefunc(x):
-    """
-    returns the wavefunction of He in the case
-    where there's no interaction between the electrons
-    """
-    return x*np.exp(-NUCLEAR_CHARGE*x)/np.trapz((x*np.exp(-NUCLEAR_CHARGE*x))**2,x)**0.5
-
 class He:
     def __init__(self,R_MAX,SAMPLES):
         """
@@ -19,6 +12,7 @@ class He:
             maximum value of r.
         SAMPLES : integer
             number of divisions of the radial space.
+        -----------
         
         Initialized al the attributes and computes nuclear potential
         
@@ -40,11 +34,6 @@ class He:
 
     def compute_hartree_potential(self):
         """
-        Parameters
-        ----------
-        SAMPLES : integer
-            number of divisions of the radial space.
-        
         Computes Hartree potential from solving the Poisson equation
         U_H''(r) = -rho(r) / r
         with the boundary conditions U_H(0) = 0, U_H(r_max) = NUCLEAR_CHARGE    
@@ -73,12 +62,7 @@ class He:
         self.V_X[0] = 0 #otherwise it diverges at 0
         
     def compute_correlation_potential(self):
-        """
-        Parameters
-        ----------
-        SAMPLES : integer
-            number of divisions of the radial space.
-        
+        """        
         Computes the correlation potential according to Ceperly-Alder
         parameterization for the spin unpolarized system.
         """
@@ -92,7 +76,17 @@ class He:
                     e_c = GAM / (1 + BETA1*rs**0.5 + BETA2*rs)
                     self.V_C[i] = e_c * (1+BETA1*7/6*rs**0.5+BETA2*4/3*rs) / (1+BETA1*rs**0.5+BETA2*rs)
                 else: self.V_C[i]=0
-
+    
+    def compute_total_potential(self):
+        """        
+        Computes the potential using the dedicated methods and them sums them
+        all together into the total potential V
+        """
+        self.compute_exchange_potential()
+        self.compute_hartree_potential()
+        self.compute_correlation_potential()
+        self.V = self.V_N + self.V_H  + self.V_X + self.V_C 
+        
     def hse_normalize(self): 
         """
         Normalizes radial u wavefunction
@@ -104,20 +98,22 @@ class He:
         probability_density = probability_density/probability 
         self.u = probability_density**0.5
 
-    def hse_integrate(self, L, E_N):
+    def hse_integrate(self, angular_momentum, E_N):
         """
         Parameters
         ----------
-        R_MAX : float
-            maximum value of r.
-        SAMPLES : integer
-            number of divisions of the radial space.
+        angular_momentum : integer
+            angular momentum
+            always = 0 for He
+            
         E_N : float
             energy to use in the solution of SE
+        -----------------
             
         Solves the SE and updates u using Verlet's algorithm
         
         """
+        L = angular_momentum
         step = (self.r[-1] - self.r[0]) / (self.SAMPLES-1)
         #setting boundary codition
         self.u[-1] = self.r[-1]*np.exp(-self.r[-1])
@@ -126,16 +122,25 @@ class He:
         for i in range(self.SAMPLES-2,0,-1):
             self.u[i-1] = 2*self.u[i] - self.u[i+1] + step**2*(-2*E_N + 2*self.V[i] + L*(L+1)/self.r[i]**2)*self.u[i]
     
-    def hse_solve(self,N,L,PREC_HSE,HSE_E_MIN): 
+    def hse_solve(self,N,angular_momentum,PREC_HSE,HSE_E_MIN): 
         """
         Parameters
         ----------
         N : integer
+            principal quantum number
             always = 1 for He
-        L : integer
+            
+        angular_momentum : integer
+            angular momentum
             always = 0 for He
-        SAMPLES : integer
-            number of divisions of the radial space.
+            
+        PREC_HSE : float
+            precision on the energy eignvalue of the SE solution
+            
+        HSE_E_MIN = float
+            minimum energy value above which the energy eignvalues
+            that are solution of the SE are searched
+        --------------
             
         Solves Schrodinger problem with precision PREC_HSE on energy eignvalue,
         the bisection method is used to find the eignvalue.
@@ -146,6 +151,7 @@ class He:
         E_N : float
             kinetic energy of single electron
         """
+        L = angular_momentum
         E_N=0
         E_max =  0
         E_min = HSE_E_MIN
@@ -165,8 +171,9 @@ class He:
         """
         Parameters
         ----------
-        V : numpy.array
+        V : 1d numpy.array
             a general potential
+        ---------------
             
         Computes the energy of given potential V
 
@@ -180,9 +187,16 @@ class He:
     def hdft(self,PREC_DFT,PREC_HSE,HSE_E_MIN):
         """
         Parameters
+        PREC_DFT : float
+            precision on the total energy at which the simulation stops
+            
+        PREC_HSE : float
+            precision on the energy eignvalue of the SE solution
+            
+        HSE_E_MIN = float
+            minimum energy value above which the energy eignvalues
+            that are solution of the SE are searched
         ----------
-        SAMPLES : integer
-            number of divisions of the radial space.
         
         Reiterates the solution of the SE,
         updating the potentials each time that a new denisty is obtained
@@ -191,10 +205,7 @@ class He:
         self.total_energy = 0
         while(np.abs(last_total_energy-self.total_energy)>PREC_DFT):
             last_total_energy = self.total_energy
-            self.compute_hartree_potential()
-            self.compute_exchange_potential()
-            self.compute_correlation_potential()
-            self.V = self.V_N + self.V_H  + self.V_X + self.V_C 
+            self.compute_total_potential()
             #L is always 0 because s orbital, N = 1
             self.E_k = self.hse_solve(1, 0,PREC_HSE,HSE_E_MIN) #N,L
             self.rho = 2*self.u**2 #computes density, 2e- in 1s
