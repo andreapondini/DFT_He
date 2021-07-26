@@ -21,10 +21,21 @@ def hydrogen_like_wavefunc(x):
 
 def plot_density(atom):
     """
-   Plots in the range [0:4] the electronic density computed
-   the hydrogen-like result is plotted for comparison,
-   the save path is taken from the config file
-   """
+    Parameters
+    ----------
+    atom : He object
+        object of which the density is plotted
+    ---------------
+    
+    Plots in the range [0:4] the electronic density computed
+    the hydrogen-like result is plotted for comparison,
+    the save path is taken from the config file
+    
+    Returns
+    ---------
+    fig : matplotlib.figure.Figure
+        figure of the density plot
+    """
     fig, ax = plt.subplots(figsize=(7,3))
     ax.plot(atom.r[atom.r<4],atom.rho[atom.r<4],label='density')
     ax.plot(atom.r[atom.r<4],2*hydrogen_like_wavefunc(atom.r[atom.r<4])**2,label="hydrogen like density")
@@ -36,8 +47,18 @@ def plot_density(atom):
     
 def plot_potentials(atom):
     """
+    Parameters
+    ----------
+    atom : He object
+        object of which the potentials are plotted
+    ---------------
     Plots in the range [0:12] the different potentials computed,
     the save path is taken from the config file
+    
+    Returns
+    ---------
+    fig : matplotlib.figure.Figure
+        figure of the potentials plot
     """
     fig, (ax1,ax2) = plt.subplots(2,1,figsize=(7,4))
     ax1.plot(atom.r[atom.r<12],atom.V_H[atom.r<12],label="V_H")
@@ -56,6 +77,15 @@ def plot_potentials(atom):
         
 def save_data(atom, path = data_path):
     """
+    Parameters
+    ----------
+    atom : He object
+        object of which the data is saved
+    
+    path = str
+        path where to save the .txt file
+    ---------------
+    
     Saves the main results into a txt file, 
     the save path is taken from the config file
     """
@@ -63,5 +93,24 @@ def save_data(atom, path = data_path):
     np.savetxt(data_path,list(zipped),fmt='%.5e',delimiter='\t',header="R [Å] \t single electron WF \t density \t V [a.u.]")
 
 def save_plots(fig1, fig2, path1 = density_plot_path, path2 = potential_plot_path):
-        fig1.savefig(path1,dpi=100)
-        fig2.savefig(path2,dpi=100)
+    """
+    Parameters
+    ----------
+    fig1 : matplotlib.figure.Figure
+        figure of the denisty plot
+        
+    fig2 : matplotlib.figure.Figure
+        figure of the potentials plot
+        
+    path1 = str
+        path where to save the density plot file
+        
+    path2 = str
+        path where to save the potentials plot file
+    ---------------
+    
+    Saves the density and potentials plots at path1 and path2 respectivly
+    
+    """     
+    fig1.savefig(path1,dpi=100)
+    fig2.savefig(path2,dpi=100)
