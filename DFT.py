@@ -10,7 +10,10 @@ from plotting import save_data, plot_potentials, plot_density, save_plots
 from sys import argv
 
 config = configparser.ConfigParser()
-config.read(argv[1])
+if len(argv)>=2:
+    config.read(argv[1])
+else:
+    config.read("configuration.txt")
 
 SAMPLES = config.get('settings', 'SAMPLES')
 R_MAX = config.get('settings', 'R_MAX')
@@ -25,12 +28,12 @@ SAMPLES = int(SAMPLES)
 R_MAX = float(R_MAX)    
 PREC_DFT = float(PREC_DFT)
 PREC_HSE = float(PREC_HSE)
-HSE_E_MIN = int(HSE_E_MIN)
+HSE_E_MIN = float(HSE_E_MIN)
 
 #after creating the object and launching the main method      
-atom = He(R_MAX,SAMPLES)
-atom.hdft(PREC_DFT,PREC_HSE,HSE_E_MIN)
-print("Total energy ",round(atom.total_energy,3)," a.u")
+atom = He(R_MAX, SAMPLES)
+atom.hdft(PREC_DFT, PREC_HSE, HSE_E_MIN)
+print("Total energy ",round(atom.total_energy, 3)," a.u")
 #the data is plotted and saved into files
 save_data(atom,data_path)
 fig1 = plot_density(atom)
