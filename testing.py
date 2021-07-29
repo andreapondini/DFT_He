@@ -11,6 +11,13 @@ config.read("configuration.txt")
 
 NUCLEAR_CHARGE = 2
 
+def hydrogen_like_wavefunc(x):
+    """
+    returns the wavefunction of He in the case
+    where there's no interaction between the electrons
+    """
+    return x*np.exp(-NUCLEAR_CHARGE*x)/np.trapz((x*np.exp(-NUCLEAR_CHARGE*x))**2,x)**0.5
+
 @given(SAMPLES = st.integers(10,int(config.get('settings', 'SAMPLES'))), R_MAX = st.floats(4,float(config.get('settings', 'R_MAX'))))
 def test_He_init(R_MAX,SAMPLES):
     """
@@ -62,11 +69,12 @@ def test_compute_hartee_potential(R_MAX,SAMPLES):
     ----------
         correct sign of Hartree potential,
         boundary conditions of Hartree potential
+        The hyrogen like WF is used as reference
 
     """
     test_atom = He(R_MAX,SAMPLES)
-    #using a random WF
-    test_atom.u=np.random.rand(SAMPLES)
+    #using the hydrogen like WF as reference
+    test_atom.u=hydrogen_like_wavefunc(test_atom.r)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     test_atom.compute_hartree_potential()
@@ -88,12 +96,13 @@ def test_compute_correlation_potential(R_MAX,SAMPLES):
 
     TESTS
     ----------
+        The hyrogen like WF is used as reference.
         correct sign of Correlation potential and no divergence
 
     """
     test_atom = He(R_MAX,SAMPLES)
-    #using a random WF
-    test_atom.u=np.random.rand(SAMPLES)
+    #using the hydrogen like WF as reference
+    test_atom.u=hydrogen_like_wavefunc(test_atom.r)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     test_atom.compute_correlation_potential()
@@ -116,11 +125,12 @@ def test_compute_exchange_potential(R_MAX,SAMPLES):
     TESTS
     ----------
         correct sign of exchange potential and no divergence
+        The hyrogen like WF is used as reference.
 
     """
     test_atom = He(R_MAX,SAMPLES)
-    #using a random WF
-    test_atom.u=np.random.rand(SAMPLES)
+    #using the hydrogen like WF as reference
+    test_atom.u=hydrogen_like_wavefunc(test_atom.r)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     test_atom.compute_exchange_potential()
@@ -144,11 +154,12 @@ def test_hse_normalize(R_MAX,SAMPLES):
     ----------
         correct sign of WF and density,
         good normalization
+        The hyrogen like WF is used as reference
 
     """
     test_atom = He(R_MAX,SAMPLES)
-    #using a random WF
-    test_atom.u=np.random.rand(SAMPLES)
+    #using the hydrogen like WF as reference
+    test_atom.u=hydrogen_like_wavefunc(test_atom.r)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     probability = np.trapz(test_atom.u**2,test_atom.r)
@@ -177,18 +188,16 @@ def test_hse_integrate(R_MAX,SAMPLES,E_N):
     ----------
         boundary conditions of WF,
         continuity of WF
+        The hyrogen like WF is used as reference
 
     """
     test_atom = He(R_MAX,SAMPLES)
-    #using a random WF
-    test_atom.u=np.random.rand(SAMPLES)
+    #using the hydrogen like WF as reference
+    test_atom.u=hydrogen_like_wavefunc(test_atom.r)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     #computing potentials for random WF
-    test_atom.compute_correlation_potential()
-    test_atom.compute_exchange_potential()
-    test_atom.compute_hartree_potential()
-    test_atom.V = test_atom.V_N + test_atom.V_H + test_atom.V_X + test_atom.V_C
+    test_atom.compute_total_potential()
     #obtain new wavefunction integrating using a random energy
     test_atom.hse_integrate(1,E_N)
     #this wavefunction is not an eignvalue but still needs to have basic properties
@@ -216,19 +225,17 @@ def test_hse_solve(R_MAX,SAMPLES,PREC_HSE,HSE_E_MIN):
     ----------
         that the conputed WF has 1s orbital properties,
         energy eignvalue has to be negative and within range
+        The hyrogen like WF is used as reference
 
     """
     test_atom = He(R_MAX,SAMPLES)
-    #using a random WF
-    test_atom.u=np.random.rand(SAMPLES)
+    #using the hydrogen like WF as reference
+    test_atom.u=hydrogen_like_wavefunc(test_atom.r)
     #test_atom.u = np.zeros(SAMPLES)
     test_atom.hse_normalize()
     test_atom.rho = 2*test_atom.u**2
     #computing potentials using random WF
-    test_atom.compute_correlation_potential()
-    test_atom.compute_exchange_potential()
-    test_atom.compute_hartree_potential()
-    test_atom.V = test_atom.V_N + test_atom.V_H + test_atom.V_X + test_atom.V_C
+    test_atom.compute_total_potential()
     #compute new wavefunction using potentials
     test_atom.E_k = test_atom.hse_solve(1,0,PREC_HSE,HSE_E_MIN)
     #1s orbitals have no nodes, wf needs to be positive
