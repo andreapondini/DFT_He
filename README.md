@@ -58,9 +58,11 @@ To run the script first install the dependencies:
 
 pip install -r requirements.txt
 
-And then launch the main script:
+And then launch the main script, with the possibility to specify the configuration file as sys.argv[1], for example as:
 
-python DFT.py
+python DFT.py configuration.txt
+
+The default configuration file if not specified through sys.argv[1] is configuration.txt .
 
 ## Main results
 <a href="https://ibb.co/nrYSXPV"><img src="https://i.ibb.co/K6fHtKQ/Density.png" alt="Density" border="0" width = 400px height = auto></a>
