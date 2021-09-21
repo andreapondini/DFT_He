@@ -10,6 +10,7 @@ from plotting import save_data, plot_potentials, plot_density, save_plots
 from sys import argv
 
 config = configparser.ConfigParser()
+#if the configuration file is not specified, use "configuration.txt"
 if len(argv)>=2:
     config.read(argv[1])
 else:
