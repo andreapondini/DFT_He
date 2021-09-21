@@ -14,7 +14,7 @@ class He:
             number of divisions of the radial space.
         -----------
         
-        Initialized al the attributes and computes nuclear potential
+        Initializes all the attributes and computes nuclear potential
         
         """
         self.SAMPLES = SAMPLES
@@ -27,7 +27,7 @@ class He:
         self.V_C = np.zeros(SAMPLES) #correlation potential
         self.V_N = np.zeros(SAMPLES) #nuclear potential
         self.V = np.zeros(SAMPLES) #total potential
-        self.u = np.zeros(SAMPLES) #radial function
+        self.u = np.zeros(SAMPLES) #radial wavefunction
         self.V_N[1:] = - NUCLEAR_CHARGE / self.r[1:] #initializing nuclear potential
         self.V_N[0]=0 #otherwise it diverges at 0
 
@@ -79,7 +79,7 @@ class He:
     
     def compute_total_potential(self):
         """        
-        Computes the potential using the dedicated methods and them sums them
+        Computes the potential using the dedicated methods and then sums them
         all together into the total potential V
         """
         self.compute_exchange_potential()
